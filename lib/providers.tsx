@@ -1,6 +1,6 @@
 'use client'
 import { useEffect } from 'react'
-import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { ThemeProvider } from '@/lib/theme-context'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,16 +15,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="dark"
-      enableSystem={false}
-      disableTransitionOnChange
-    >
+    <ThemeProvider>
       <TooltipProvider delayDuration={300}>
         {children}
       </TooltipProvider>
-    </NextThemesProvider>
+    </ThemeProvider>
   )
 }
 

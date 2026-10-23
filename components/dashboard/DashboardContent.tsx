@@ -1,310 +1,257 @@
 'use client'
-import { useMemo } from 'react'
-import { motion } from 'framer-motion'
-import {
-  ClipboardList, CheckCircle2, Clock, FileText, Plus, Play,
-  TrendingUp, Calendar, Pause, SkipForward, ExternalLink, Pin,
-} from 'lucide-react'
+
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import {
+  ArrowRight, ArrowUpRight, Braces, Check, CheckCircle2, Clock3, FileText, KeyRound,
+  ListTodo, Pause, Play, Plus, SkipForward, Sparkles, Trash2,
+} from 'lucide-react'
 import { useTodos } from '@/hooks/useTodos'
 import { usePomodoro } from '@/hooks/usePomodoro'
 import { useNotes } from '@/hooks/useNotes'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { formatTime, formatDuration } from '@/lib/utils'
-import { Priority, TaskStatus } from '@/types'
+import { formatTime } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import type { Task } from '@/types'
 
-const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }
+type TaskFilter = 'all' | 'today' | 'overdue'
 
-function priorityVariant(p: Priority) {
-  return ({ critical: 'critical', high: 'high', medium: 'medium', low: 'low' } as const)[p]
-}
+const quickTools = [
+  { href: '/json-formatter', name: 'JSON Formatter', description: 'Format and validate JSON', icon: Braces, tint: 'text-cyan-300 bg-cyan-400/10' },
+  { href: '/base64', name: 'Base64 Encoder', description: 'Encode or decode strings', icon: FileText, tint: 'text-violet-300 bg-violet-400/10' },
+  { href: '/timestamp', name: 'Timestamp Converter', description: 'Convert Unix timestamps', icon: Clock3, tint: 'text-amber-300 bg-amber-400/10' },
+  { href: '/password-hash', name: 'Password Hasher', description: 'Generate secure hashes', icon: KeyRound, tint: 'text-emerald-300 bg-emerald-400/10' },
+]
 
-function statusLabel(s: TaskStatus): string {
-  return ({ backlog: 'Backlog', todo: 'Todo', 'in-progress': 'In Progress', review: 'Review', completed: 'Done' })[s]
-}
+function TaskCard({ task, onToggle, onDelete }: { task: Task; onToggle: () => void; onDelete: () => void }) {
+  const done = task.status === 'completed'
+  const priorityVariant = ({ critical: 'critical', high: 'high', medium: 'medium', low: 'low' } as const)[task.priority]
 
-function PomodoroCircle({ progress, time, label }: { progress: number; time: string; label: string }) {
-  const r = 44
-  const circ = 2 * Math.PI * r
-  const offset = circ - (progress / 100) * circ
   return (
-    <div className="relative w-28 h-28 flex items-center justify-center">
-      <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100" width="112" height="112">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--border)" strokeWidth="6" />
-        <circle
-          cx="50" cy="50" r={r} fill="none"
-          stroke="var(--primary)" strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 1s linear' }}
-        />
-      </svg>
-      <div className="text-center z-10">
-        <div className="text-lg font-bold font-mono text-foreground leading-none">{time}</div>
-        <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{label}</div>
+    <article className="group rounded-2xl border border-white/[0.05] bg-black/65 p-4 transition-colors hover:border-white/[0.12]">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={`${done ? 'Mark' : 'Complete'} task: ${task.title}`}
+          aria-pressed={done}
+          className={cn(
+            'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-colors',
+            done ? 'border-primary bg-primary text-primary-foreground' : 'border-white/15 bg-white/[0.04] text-transparent hover:border-primary/60'
+          )}
+        >
+          <Check className="h-4 w-4" aria-hidden="true" />
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className={cn('min-w-0 flex-1 text-base font-semibold text-white', done && 'text-white/45 line-through')}>{task.title}</h3>
+            <Badge variant={priorityVariant} className="shrink-0 px-2 py-0.5 text-[11px] tracking-normal normal-case">
+              {task.priority === 'high' ? 'High' : task.priority}
+            </Badge>
+          </div>
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/55">
+            {task.description || (task.category ? `Category: ${task.category}` : 'No description')}
+          </p>
+          <div className="mt-3 flex items-center justify-between border-t border-white/[0.07] pt-2.5">
+            <time className="text-xs tabular-nums text-white/60" dateTime={task.deadline ?? task.createdAt}>
+              {new Date(task.deadline ?? task.createdAt).toLocaleDateString()}
+            </time>
+            <button type="button" onClick={onDelete} aria-label={`Delete task: ${task.title}`} className="rounded-md p-1 text-white/35 transition hover:bg-red-500/10 hover:text-red-400">
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </article>
   )
 }
 
 export function DashboardContent() {
-  const { tasks } = useTodos()
-  const { state, start, pause, skip, progress, focusTimeToday, todaySessions } = usePomodoro()
+  const { tasks, toggleTodo, deleteTodo } = useTodos()
+  const { state, start, pause, skip, focusTimeToday, todaySessions } = usePomodoro()
   const { notes } = useNotes()
   const { user } = useAuth()
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>('all')
 
-  const today = new Date().toDateString()
-
+  const now = new Date()
+  const today = now.toDateString()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const displayName = useMemo(() => {
-    const meta = user?.user_metadata?.full_name as string | undefined
-    if (meta) return meta.split(' ')[0]
-    return user?.email?.split('@')[0] ?? 'there'
+    const fullName = user?.user_metadata?.full_name as string | undefined
+    return fullName?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there'
   }, [user])
 
-  const stats = useMemo(() => {
-    const completed = tasks.filter((t) => t.status === 'completed').length
-    const notesToday = notes.filter((n) => new Date(n.createdAt).toDateString() === today).length
-    const focusSessions = todaySessions.filter((s) => s.mode === 'focus').length
-    return {
-      total: tasks.length,
-      completed,
-      focusTime: focusTimeToday,
-      notes: notes.length,
-      notesToday,
-      focusSessions,
-      completionRate: tasks.length ? Math.round((completed / tasks.length) * 100) : 0,
-    }
-  }, [tasks, focusTimeToday, notes, todaySessions, today])
-
-  const todayTasks = useMemo(() => {
-    const withDeadlineToday = tasks.filter(
-      (t) => t.deadline && new Date(t.deadline).toDateString() === today
-    )
-    if (withDeadlineToday.length > 0) return withDeadlineToday.slice(0, 4)
-    return tasks.filter((t) => t.status !== 'completed').slice(0, 4)
-  }, [tasks, today])
-
+  const completedTasks = tasks.filter(task => task.status === 'completed').length
+  const openTasks = tasks.length - completedTasks
+  const todayTasks = tasks.filter(task => task.deadline && new Date(task.deadline).toDateString() === today)
+  const overdueTasks = tasks.filter(task => task.deadline && task.status !== 'completed' && new Date(task.deadline).getTime() < startOfToday)
+  const filteredTasks = taskFilter === 'today' ? todayTasks : taskFilter === 'overdue' ? overdueTasks : tasks
+  const focusSessions = todaySessions.filter(session => session.mode === 'focus').length
+  const recentTasks = filteredTasks.slice(0, 6)
   const recentNotes = notes.slice(0, 3)
 
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening'
+  const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 17 ? 'Good Afternoon' : 'Good Evening'
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8"
-      >
+    <div className="min-h-[calc(100dvh-3.5rem)] p-4 pb-24 sm:p-5 sm:pb-24 xl:p-6 xl:pb-24">
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{greeting}, {displayName}</h1>
-          <p className="text-sm text-muted-foreground mt-1">Here&apos;s what&apos;s happening today.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-[26px]">{greeting}, {displayName}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-white/65 sm:text-base">Your developer workspace at a glance.</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/todo">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Task</span>
-              <span className="sm:hidden">Task</span>
-            </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/todo" className="inline-flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 text-sm text-white/80 transition hover:bg-white/[0.1]">
+            <Plus className="h-4 w-4" aria-hidden="true" /> New Task
           </Link>
-          <Link href="/pomodoro">
-            <Button size="sm" className="gap-2">
-              <Play className="w-4 h-4" />
-              <span className="hidden sm:inline">Start Focus</span>
-              <span className="sm:hidden">Focus</span>
-            </Button>
-          </Link>
+          <button type="button" onClick={state.isRunning ? pause : start} className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_8px_24px_rgba(0,245,212,.2)] transition hover:brightness-110">
+            {state.isRunning ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
+            {state.isRunning ? 'Pause Focus' : 'Start Focus'}
+          </button>
         </div>
-      </motion.div>
+      </header>
 
-      {/* Stats cards */}
-      <motion.div
-        variants={container} initial="hidden" animate="show"
-        className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8"
-      >
-        {[
-          {
-            label: 'TOTAL TASKS', value: stats.total,
-            icon: ClipboardList, extra: null,
-          },
-          {
-            label: 'COMPLETED', value: stats.completed,
-            icon: CheckCircle2,
-            extra: (
-              <div className="mt-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-2xl font-bold text-foreground">{stats.completed}</span>
-                  <span className="text-sm text-muted-foreground">/ {stats.total}</span>
-                </div>
-                <Progress value={stats.total ? (stats.completed / stats.total) * 100 : 0} className="h-1" />
+      <div className="grid gap-5 lg:h-[calc(100dvh-12rem)] lg:min-h-[680px] lg:grid-cols-[minmax(0,1.8fr)_minmax(340px,.95fr)]">
+        <div className="flex min-w-0 flex-col gap-5">
+          <section className="shrink-0 rounded-[28px] border border-white/[0.09] bg-[rgba(3,9,14,0.88)] p-5 shadow-[0_24px_64px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-6">
+            <header className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-white">Developer Hub</h2>
+                <p className="mt-1 text-sm text-white/55">Your tasks, notes, and developer utilities</p>
               </div>
-            ),
-          },
-          {
-            label: 'FOCUS TIME',
-            value: formatDuration(stats.focusTime || 0),
-            icon: Clock, extra: null,
-          },
-          {
-            label: 'NOTES CREATED', value: stats.notes,
-            icon: FileText,
-            extra: stats.notesToday > 0 ? (
-              <div className="flex items-center gap-1 mt-1">
-                <TrendingUp className="w-3 h-3 text-success" />
-                <span className="text-xs text-success">+{stats.notesToday} Today</span>
-              </div>
-            ) : null,
-          },
-        ].map(({ label, value, icon: Icon, extra }, i) => (
-          <motion.div
-            key={label} variants={item}
-            className="rounded-xl border border-border bg-card p-3 sm:p-5"
-          >
-            <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <span className="text-[9px] sm:text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">{label}</span>
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-muted flex items-center justify-center">
-                <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
-              </div>
+              <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
+            </header>
+
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <article className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4">
+                <div className="flex items-center justify-between text-white/55"><ListTodo className="h-4 w-4" /><span className="text-xs">Open</span></div>
+                <p className="mt-3 text-[32px] font-semibold tabular-nums leading-none text-white">{openTasks}</p>
+                <p className="mt-2 text-sm text-white/55">Active tasks</p>
+              </article>
+              <article className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4">
+                <div className="flex items-center justify-between text-white/55"><CheckCircle2 className="h-4 w-4 text-emerald-400" /><span className="text-xs">Done</span></div>
+                <p className="mt-3 text-[32px] font-semibold tabular-nums leading-none text-white">{completedTasks}</p>
+                <p className="mt-2 text-sm text-white/55">Completed tasks</p>
+              </article>
+              <article className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4">
+                <div className="flex items-center justify-between text-white/55"><Clock3 className="h-4 w-4 text-cyan-300" /><span className="text-xs">Today</span></div>
+                <p className="mt-3 text-[32px] font-semibold tabular-nums leading-none text-white">{focusSessions}</p>
+                <p className="mt-2 text-sm text-white/55">Focus sessions</p>
+              </article>
+              <article className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4">
+                <div className="flex items-center justify-between text-white/55"><FileText className="h-4 w-4 text-amber-300" /><span className="text-xs">Saved</span></div>
+                <p className="mt-3 text-[32px] font-semibold tabular-nums leading-none text-white">{notes.length}</p>
+                <p className="mt-2 text-sm text-white/55">Quick notes</p>
+              </article>
             </div>
-            {extra ?? <div className="text-2xl sm:text-3xl font-bold text-foreground">{value}</div>}
-          </motion.div>
-        ))}
-      </motion.div>
+          </section>
 
-      {/* Main content */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6">
-        {/* Today's Tasks */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="rounded-xl border border-border bg-card"
-        >
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-              {tasks.some((t) => t.deadline && new Date(t.deadline).toDateString() === today)
-                ? "Due Today"
-                : "Pending Tasks"}
-            </span>
-            <button className="text-muted-foreground hover:text-foreground">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <circle cx="12" cy="5" r="1" fill="currentColor" />
-                <circle cx="12" cy="12" r="1" fill="currentColor" />
-                <circle cx="12" cy="19" r="1" fill="currentColor" />
-              </svg>
-            </button>
-          </div>
-          <div className="divide-y divide-border">
-            {todayTasks.map((task) => (
-              <div key={task.id} className="flex items-center gap-3 px-4 sm:px-5 py-3">
-                <div className={`w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${task.status === 'completed' ? 'bg-primary border-primary' : 'border-border'}`}>
-                  {task.status === 'completed' && (
-                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-                <span className={`flex-1 text-sm truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                  {task.title}
-                </span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Badge variant={priorityVariant(task.priority)} className="capitalize">
-                    {task.priority}
-                  </Badge>
-                  {task.category && (
-                    <span className="hidden sm:inline text-xs text-muted-foreground border border-border rounded px-2 py-0.5">
-                      {task.category}
-                    </span>
-                  )}
-                </div>
+          <section className="min-h-[340px] flex-1 rounded-[28px] border border-white/[0.09] bg-[rgba(3,9,14,0.88)] p-5 shadow-[0_24px_64px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-6">
+            <header className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">Quick Tools</h2>
+                <p className="mt-1 text-sm text-white/55">Useful utilities for everyday development</p>
               </div>
-            ))}
-            {tasks.length === 0 && (
-              <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-                No tasks yet. <Link href="/todo" className="text-primary hover:underline">Add your first task</Link>
-              </div>
-            )}
-          </div>
-          <div className="px-5 py-3 border-t border-border">
-            <Link href="/todo" className="text-xs text-primary hover:underline">
-              View all {tasks.length} tasks →
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Right column */}
-        <div className="flex flex-col gap-6">
-          {/* Pomodoro widget */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            className="rounded-xl border border-border bg-card"
-          >
-            <div className="px-5 py-4 border-b border-border">
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Current Session</span>
-            </div>
-            <div className="p-5 flex flex-col items-center gap-4">
-              <PomodoroCircle
-                progress={progress}
-                time={formatTime(state.timeRemaining)}
-                label={state.label ?? 'Focus'}
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                  onClick={state.isRunning ? pause : start}
-                >
-                  {state.isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                </button>
-                <button
-                  className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                  onClick={skip}
-                >
-                  <SkipForward className="w-4 h-4" />
-                </button>
-                <Link href="/pomodoro">
-                  <Button size="sm" variant="ghost" className="h-10 px-3 text-xs text-muted-foreground">
-                    Full View
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Recent Notes */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="rounded-xl border border-border bg-card flex-1"
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Recent Notes</span>
-              <Link href="/notes">
-                <ExternalLink className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+              <Link href="/json-formatter" aria-label="Browse developer tools" className="rounded-full p-2 text-white/45 transition hover:bg-white/[0.08] hover:text-white">
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
-            </div>
-            <div className="divide-y divide-border">
-              {recentNotes.map((note) => (
-                <div key={note.id} className="px-5 py-3">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    {note.pinned && <Pin className="w-3 h-3 text-primary shrink-0" />}
-                    <p className="text-sm font-medium text-foreground truncate">{note.title}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-1">{note.content}</p>
-                </div>
+            </header>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {quickTools.map(({ href, name, description, icon: Icon, tint }) => (
+                <Link key={href} href={href} className="group flex min-h-[104px] items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4 transition hover:border-white/[0.15] hover:bg-white/[0.07]">
+                  <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', tint)}>
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[17px] font-semibold text-white">{name}</span>
+                    <span className="mt-1 block text-sm text-white/55">{description}</span>
+                  </span>
+                  <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-white/25 transition group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+                </Link>
               ))}
-              {notes.length === 0 && (
-                <div className="px-5 py-6 text-center text-sm text-muted-foreground">
-                  <Link href="/notes" className="text-primary hover:underline">Create your first note</Link>
+            </div>
+
+            <div className="mt-5 border-t border-white/[0.07] pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-base font-semibold text-white">Recent Notes</h3>
+                <Link href="/notes" className="text-sm text-white/55 transition hover:text-primary">View all</Link>
+              </div>
+              {recentNotes.length ? (
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {recentNotes.map(note => (
+                    <Link key={note.id} href="/notes" className="min-w-0 rounded-xl bg-black/40 p-3 transition hover:bg-white/[0.06]">
+                      <p className="truncate text-sm font-medium text-white/85">{note.title || 'Untitled note'}</p>
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/50">{note.content}</p>
+                    </Link>
+                  ))}
                 </div>
+              ) : (
+                <Link href="/notes" className="block rounded-xl border border-dashed border-white/10 px-4 py-3 text-sm text-white/55 transition hover:border-primary/30 hover:text-white/70">
+                  No notes yet. Create a quick note.
+                </Link>
               )}
             </div>
-          </motion.div>
+          </section>
         </div>
+
+        <aside className="flex min-w-0 flex-col gap-5 lg:min-h-0">
+          <section className="shrink-0 rounded-[28px] border border-white/[0.08] bg-[rgba(3,9,14,0.9)] p-5 shadow-[0_24px_64px_rgba(0,0,0,.38)] sm:p-6">
+            <header className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="flex items-center gap-2 text-2xl font-semibold text-white"><Clock3 className="h-5 w-5 text-primary" aria-hidden="true" /> Focus Session</h2>
+                <p className="mt-1 text-sm text-white/55">{state.label ?? 'Pomodoro timer'}</p>
+              </div>
+              <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{state.isRunning ? 'In progress' : 'Ready'}</span>
+            </header>
+            <div className="flex items-center justify-between gap-4 rounded-2xl bg-black/55 px-5 py-4">
+              <div>
+                <p className="text-[44px] font-bold leading-none tabular-nums tracking-tight text-white">{formatTime(state.timeRemaining)}</p>
+                <p className="mt-2 text-sm text-white/55">{Math.floor(focusTimeToday / 60)} min focused today</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={state.isRunning ? pause : start} aria-label={state.isRunning ? 'Pause focus session' : 'Start focus session'} className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:brightness-110">
+                  {state.isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </button>
+                <button type="button" onClick={skip} aria-label="Skip focus session" className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/70 transition hover:bg-white/[0.1] hover:text-white">
+                  <SkipForward className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <Link href="/pomodoro" className="mt-3 inline-flex items-center gap-1.5 text-sm text-white/55 transition hover:text-primary">Open Pomodoro <ArrowRight className="h-3.5 w-3.5" /></Link>
+          </section>
+
+          <section className="flex min-h-[400px] min-w-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-white/[0.08] bg-[rgba(3,9,14,0.9)] p-5 shadow-[0_24px_64px_rgba(0,0,0,.38)] sm:p-6">
+            <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 text-2xl font-semibold text-white"><ListTodo className="h-5 w-5 text-white/70" aria-hidden="true" /> Tasks</h2>
+              <div className="flex items-center gap-4 text-sm">
+                <Link href="/todo" className="inline-flex items-center gap-1.5 text-white/65 transition hover:text-white">See All <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+                <Link href="/todo" className="inline-flex items-center gap-1.5 text-white/65 transition hover:text-primary"><Plus className="h-4 w-4" /> Add New</Link>
+              </div>
+            </header>
+            <div role="tablist" aria-label="Filter tasks" className="mb-4 flex shrink-0 gap-2 overflow-x-auto pb-1">
+              {([['all', 'All', tasks.length], ['today', 'Today', todayTasks.length], ['overdue', 'Overdue', overdueTasks.length]] as const).map(([value, label, count]) => (
+                <button key={value} type="button" role="tab" aria-selected={taskFilter === value} onClick={() => setTaskFilter(value)} className={cn('shrink-0 rounded-full px-4 py-2 text-sm font-medium transition', taskFilter === value ? 'bg-black text-white shadow-inner' : 'bg-white/[0.06] text-white/65 hover:bg-white/[0.11] hover:text-white')}>
+                  {label} <span className="ml-1 tabular-nums">{count}</span>
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              {recentTasks.map(task => <TaskCard key={task.id} task={task} onToggle={() => toggleTodo(task.id)} onDelete={() => deleteTodo(task.id)} />)}
+              {!recentTasks.length && <div className="flex min-h-32 items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-white/45">No tasks in this view.</div>}
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div className="fixed bottom-6 left-1/2 z-40 w-[min(430px,calc(100vw-32px))] -translate-x-1/2">
+        <label className="flex h-16 items-center gap-3 rounded-full border border-white/[0.12] bg-[#17232b]/85 px-5 shadow-[0_20px_45px_rgba(0,0,0,.65)] backdrop-blur-2xl focus-within:ring-2 focus-within:ring-primary/40">
+          <Sparkles className="h-5 w-5 shrink-0 text-white" aria-hidden="true" />
+          <input type="text" placeholder="How can I help you?" aria-label="Ask the assistant" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/55" />
+        </label>
       </div>
     </div>
   )
 }
+

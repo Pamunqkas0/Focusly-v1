@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Search, Trash2, Edit3, Calendar,
-  Circle, GripVertical, List, LayoutGrid, Eye,
+  Circle, CircleCheck, CircleDashed, GripVertical, Inbox, List, LayoutGrid, Eye,
   X, Check, Sparkles, Folder, Tag, AlertTriangle,
   Bold, Italic, ListOrdered, CheckSquare,
   Image as ImageIcon, Loader2, Paperclip, ExternalLink,
@@ -75,6 +75,18 @@ function statusDot(s: TaskStatus): string {
     review: 'bg-amber-500',
     completed: 'bg-emerald-500'
   })[s]
+}
+
+function StatusIcon({ status }: { status: TaskStatus }) {
+  const Icon = {
+    backlog: Inbox,
+    todo: Circle,
+    'in-progress': CircleDashed,
+    review: Eye,
+    completed: CircleCheck,
+  }[status]
+
+  return <Icon aria-hidden="true" className={cn('h-4 w-4 shrink-0', statusHeaderColor(status))} />
 }
 
 function statusColumnColor(s: TaskStatus): string {
@@ -494,8 +506,8 @@ function TaskDialog({ open, onClose, onSave, initial, defaultStatus = 'todo', on
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden text-foreground">
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border/40 shrink-0">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90dvh] flex flex-col rounded-[24px] border border-white/10 bg-[rgba(8,14,20,.97)] p-0 text-foreground shadow-[0_30px_80px_rgba(0,0,0,.65)] overflow-hidden">
+        <DialogHeader className="shrink-0 border-b border-white/[0.08] px-6 pb-3 pt-5">
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
             {initial ? 'Edit Task' : 'Create New Task'}
@@ -727,35 +739,23 @@ function TaskDetailDialog({ task, open, onClose, onEdit, onUpdate, onPreviewImag
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden text-foreground">
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border/40 shrink-0">
-          <DialogTitle className="leading-snug pr-4 text-xl font-bold flex items-start gap-2">
-            <span className="mt-1 block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ({ backlog: '#c084fc', todo: '#94a3b8', 'in-progress': '#0ea5e9', review: '#f59e0b', completed: '#10b981' })[task.status] }} />
-            {task.title}
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[rgba(8,14,20,.97)] p-0 text-foreground shadow-[0_30px_80px_rgba(0,0,0,.65)] sm:max-w-4xl">
+        <DialogHeader className="shrink-0 border-b border-white/[0.08] bg-white/[0.015] px-6 py-5">
+          <DialogTitle className="flex items-start gap-3 pr-8 text-lg font-semibold leading-snug sm:text-xl">
+            <span className="mt-1"><StatusIcon status={task.status} /></span>
+            <span className="min-w-0">{task.title}</span>
           </DialogTitle>
+          <p className="pl-7 text-xs text-muted-foreground">Task details and developer workflow</p>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 scrollbar-thin">
-          {/* Badges */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className={cn('capitalize border', priorityColor(task.priority))} variant="outline">{task.priority}</Badge>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border text-xs text-muted-foreground bg-muted/40 font-medium">
-              <div className={cn('w-1.5 h-1.5 rounded-full', statusDot(task.status))} />
-              {statusLabel(task.status)}
-            </div>
-            {task.category && (
-              <span className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground bg-muted/20 flex items-center gap-1 font-medium">
-                <Folder className="w-3 h-3" />
-                {task.category}
-              </span>
-            )}
-          </div>
-
+        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 scrollbar-thin sm:px-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
+            <div className="min-w-0 space-y-6">
           {/* Description */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</p>
             {task.description ? (
-              <div className="p-3.5 rounded-xl border border-border/80 bg-muted/20 text-sm text-foreground leading-relaxed">
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-sm leading-relaxed text-foreground">
                 {parseMarkdown(task.description, handleToggleTodo)}
               </div>
             ) : (
@@ -764,13 +764,13 @@ function TaskDetailDialog({ task, open, onClose, onEdit, onUpdate, onPreviewImag
           </div>
 
           {/* Git Branch Integration Section */}
-          <div className="space-y-3 border-t border-border/60 pt-4">
+          <div className="space-y-3 border-t border-white/[0.08] pt-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
               <GitBranch className="w-3.5 h-3.5 text-indigo-500" /> Git Branch Integration
             </p>
             <div className="grid gap-3.5 sm:grid-cols-2">
               {/* Branch Name Field */}
-              <div className="space-y-1.5 p-3 rounded-xl border border-border/80 bg-muted/15 flex flex-col justify-between">
+              <div className="flex flex-col justify-between space-y-1.5 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Git Branch</p>
                   {editingBranch ? (
@@ -832,7 +832,7 @@ function TaskDetailDialog({ task, open, onClose, onEdit, onUpdate, onPreviewImag
               </div>
 
               {/* Suggested command box */}
-              <div className="space-y-1.5 p-3 rounded-xl border border-border/80 bg-muted/15 flex flex-col justify-between">
+              <div className="flex flex-col justify-between space-y-1.5 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Checkout Command</p>
                   <div className="flex items-center justify-between gap-1.5 mt-1.5 p-2 rounded bg-black/5 dark:bg-black/25 border border-border/60 font-mono text-[10px] text-foreground">
@@ -853,11 +853,11 @@ function TaskDetailDialog({ task, open, onClose, onEdit, onUpdate, onPreviewImag
 
           {/* Attachments Section */}
           {attachments.length > 0 && (
-            <div className="space-y-2.5 border-t border-border/60 pt-4">
+            <div className="space-y-3 border-t border-white/[0.08] pt-5">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                 <Paperclip className="w-3.5 h-3.5" /> Attachments ({attachments.length})
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {attachments.map((item, idx) => (
                   <div key={idx} className="group/attach relative rounded-xl border border-border/80 overflow-hidden bg-muted/10 h-32 shadow-sm transition-all hover:shadow">
                     {item.startsWith('gradient:') ? (
@@ -900,29 +900,50 @@ function TaskDetailDialog({ task, open, onClose, onEdit, onUpdate, onPreviewImag
             </div>
           )}
 
-          {/* Meta */}
-          {(task.deadline || task.createdAt) && (
-            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/80">
-              {task.deadline && (
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Deadline</p>
-                  <div className="flex items-center gap-2 text-sm text-foreground font-medium">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    {format(new Date(task.deadline), 'MMM d, yyyy')}
-                  </div>
-                </div>
-              )}
-              {task.createdAt && (
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Created</p>
-                  <p className="text-sm text-foreground font-medium">{format(new Date(task.createdAt), 'MMM d, yyyy')}</p>
-                </div>
-              )}
             </div>
-          )}
+
+            <aside className="space-y-3 lg:sticky lg:top-0">
+              <section className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Task Overview</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Badge className={cn('capitalize border', priorityColor(task.priority))} variant="outline">{task.priority}</Badge>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    <StatusIcon status={task.status} />
+                    {statusLabel(task.status)}
+                  </span>
+                </div>
+                {task.category && (
+                  <div className="flex items-center gap-2 border-t border-white/[0.07] pt-3 text-sm text-white/75">
+                    <Folder className="h-4 w-4 text-white/45" />
+                    <span className="break-words">{task.category}</span>
+                  </div>
+                )}
+              </section>
+
+              {(task.deadline || task.createdAt) && (
+                <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+                  {task.deadline && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Deadline</p>
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        {format(new Date(task.deadline), 'MMM d, yyyy')}
+                      </div>
+                    </div>
+                  )}
+                  {task.createdAt && (
+                    <div className="space-y-1.5 border-t border-white/[0.07] pt-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Created</p>
+                      <p className="text-sm font-medium text-foreground">{format(new Date(task.createdAt), 'MMM d, yyyy')}</p>
+                    </div>
+                  )}
+                </section>
+              )}
+            </aside>
+          </div>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-border/40 gap-2 flex-row justify-end shrink-0 bg-muted/10">
+        <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t border-white/[0.08] bg-white/[0.02] px-6 py-4">
           <Button variant="outline" onClick={onClose}>Close</Button>
           <Button onClick={() => { onClose(); onEdit() }} className="gap-2">
             <Edit3 className="w-4 h-4" /> Edit Task
@@ -1062,14 +1083,14 @@ function BoardCard({ task, onEdit, onDelete, onDetail, isOverlay = false }: {
       {...attributes}
       {...listeners}
       className={cn(
-        "group relative rounded-xl border border-border/60 bg-card/70 backdrop-blur-xs p-4 flex flex-col gap-2.5 transition-all duration-250 cursor-grab active:cursor-grabbing select-none hover:shadow-md hover:border-primary/20 dark:hover:border-primary/35 hover:-translate-y-0.5",
-        isOverlay && "shadow-xl border-primary/50 cursor-grabbing scale-[1.02] rotate-[2deg] bg-card/95 backdrop-blur-md"
+        "group relative flex cursor-grab select-none flex-col gap-4 rounded-[24px] border border-white/[0.09] bg-[rgba(0,0,0,.48)] p-5 shadow-[0_12px_28px_rgba(0,0,0,.18)] backdrop-blur-sm transition-all duration-200 active:cursor-grabbing hover:-translate-y-0.5 hover:border-white/15 hover:bg-[rgba(5,12,18,.78)] hover:shadow-[0_16px_34px_rgba(0,0,0,.28)] sm:p-6",
+        isOverlay && "scale-[1.02] rotate-[2deg] cursor-grabbing border-primary/50 bg-[#111c25] shadow-2xl"
       )}
       onClick={() => onDetail()}
     >
       <div className="flex items-start justify-between gap-2">
         <p className={cn(
-          'text-sm font-semibold text-foreground leading-snug flex-1 pr-1 cursor-pointer group-hover:text-primary transition-colors',
+          'text-sm font-medium text-foreground leading-snug flex-1 pr-1 cursor-pointer group-hover:text-primary transition-colors',
           task.status === 'completed' && 'line-through text-muted-foreground'
         )}>
           {task.title}
@@ -1093,28 +1114,28 @@ function BoardCard({ task, onEdit, onDelete, onDetail, isOverlay = false }: {
       </div>
 
       {task.description ? (
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{task.description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-[1.4]">{task.description}</p>
       ) : (
-        <p className="text-xs text-muted-foreground/30 italic">No description</p>
+        <p className="text-xs italic text-muted-foreground/45">No description</p>
       )}
 
-      <div className="flex items-center justify-between mt-1 pt-2 border-t border-border/50 gap-2 flex-wrap text-[10px]">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge className={cn('capitalize border text-[9px] px-1.5 py-0 font-semibold', priorityColor(task.priority))} variant="outline">
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-3 text-xs">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <Badge className={cn('capitalize border px-2 py-0.5 text-[10px] font-semibold sm:text-[11px]', priorityColor(task.priority))} variant="outline">
             {task.priority}
           </Badge>
           {task.category && (
-            <span className="px-1.5 py-0 rounded border border-border text-muted-foreground bg-muted/30 font-medium">
+            <span className="rounded-md border border-white/[0.09] bg-white/[0.035] px-2 py-0.5 font-medium text-muted-foreground">
               {task.category}
             </span>
           )}
           {task.cover && getAttachments(task.cover).length > 0 && (
-            <span className="flex items-center gap-0.5 px-1.5 py-0 rounded border border-border/50 text-muted-foreground bg-muted/20 font-medium text-[9px]" title="Has attachments">
+            <span className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.025] px-2 py-0.5 text-[10px] font-medium text-muted-foreground" title="Has attachments">
               <Paperclip className="w-2.5 h-2.5" /> {getAttachments(task.cover).length}
             </span>
           )}
           {task.branchName && (
-            <span className="flex items-center gap-0.5 px-1.5 py-0 rounded border border-indigo-500/20 text-indigo-500 bg-indigo-500/10 font-semibold text-[9px] max-w-[120px] truncate" title={`Git Branch: ${task.branchName}`}>
+            <span className="flex max-w-full items-center gap-1 truncate rounded-md border border-indigo-400/20 bg-indigo-400/[0.08] px-2 py-0.5 text-[10px] font-semibold text-indigo-300 sm:max-w-[180px]" title={`Git Branch: ${task.branchName}`}>
               <GitBranch className="w-2.5 h-2.5 shrink-0" />
               {task.branchName}
             </span>
@@ -1181,11 +1202,23 @@ function BoardColumn({
     }
   }, [tasks])
 
+  useEffect(() => {
+    if (!inlineAdding) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const el = listRef.current
+      el?.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [inlineAdding])
+
   const handleSave = () => {
-    if (inlineTitle.trim()) {
-      onSaveInline(inlineTitle.trim())
-      setInlineTitle('')
-    }
+    const title = inlineTitle.trim()
+    if (!title) return
+
+    onSaveInline(title)
+    setInlineTitle('')
     setInlineAdding(false)
   }
 
@@ -1193,25 +1226,25 @@ function BoardColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        'rounded-2xl border flex flex-col w-full md:w-[320px] shrink-0 min-h-[480px] max-h-[calc(100vh-260px)] transition-all duration-300 shadow-sm bg-card/45 backdrop-blur-md border-border/50 hover:shadow-md hover:border-primary/20 dark:hover:border-primary/35',
+        'flex min-h-[520px] w-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/[0.09] bg-[rgba(5,11,16,.84)] shadow-[0_20px_48px_rgba(0,0,0,.28)] backdrop-blur-xl transition duration-200 hover:border-white/[0.16] xl:max-h-[calc(100dvh-20rem)]',
         statusColumnColor(status)
       )}
     >
       {/* Column header */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/60">
+      <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4">
         <div className="flex items-center gap-2">
-          <div className={cn('w-2.5 h-2.5 rounded-full', statusDot(status))} />
-          <span className={cn('text-xs font-bold uppercase tracking-wider', statusHeaderColor(status))}>
+          <StatusIcon status={status} />
+          <span className={cn('text-sm font-semibold uppercase tracking-wider', statusHeaderColor(status))}>
             {label}
           </span>
-          <span className="text-[10px] text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-full font-bold">
+          <span className="rounded-full border border-white/[0.08] bg-white/[0.055] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground">
             {tasks.length}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={onAdd}
-            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground cursor-pointer"
             title={`Add task to ${label}`}
           >
             <Plus className="w-4 h-4" />
@@ -1231,7 +1264,7 @@ function BoardColumn({
 
         <div 
           ref={listRef}
-          className="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5 scrollbar-thin"
+          className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-4 scrollbar-thin"
         >
           <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map((task) => (
@@ -1258,10 +1291,16 @@ function BoardColumn({
             <motion.div
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-3 bg-card border border-primary/30 rounded-xl flex flex-col gap-2 shadow-sm"
+              className="flex flex-col gap-3 rounded-[22px] border border-white/[0.1] bg-[rgba(15,22,29,.92)] p-4 shadow-[0_12px_28px_rgba(0,0,0,.2)]"
             >
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor={`new-task-${status}`} className="text-xs font-semibold text-foreground/85">New task</label>
+                <span className="text-[11px] text-muted-foreground">Esc to cancel</span>
+              </div>
               <Textarea
-                placeholder="Enter a title for this card..."
+                id={`new-task-${status}`}
+                aria-label={`New task title for ${label}`}
+                placeholder="What needs to be done?"
                 value={inlineTitle}
                 onChange={(e) => setInlineTitle(e.target.value)}
                 onKeyDown={(e) => {
@@ -1274,10 +1313,11 @@ function BoardColumn({
                     setInlineTitle('')
                   }
                 }}
-                className="text-xs resize-none h-16 min-h-[50px] border-none focus-visible:ring-0 p-0 shadow-none text-foreground"
+                className="min-h-[88px] resize-none rounded-2xl border border-white/[0.08] bg-black/20 px-4 py-3 text-sm leading-relaxed text-foreground shadow-none placeholder:text-muted-foreground/70 focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15"
                 autoFocus
               />
-              <div className="flex items-center gap-1.5 justify-end">
+              <p className="text-[11px] leading-4 text-muted-foreground">Enter to add · Shift+Enter for a new line</p>
+              <div className="flex items-center justify-end gap-2 border-t border-white/[0.07] pt-3">
                 <Button
                   size="sm"
                   variant="ghost"
@@ -1285,16 +1325,17 @@ function BoardColumn({
                     setInlineAdding(false)
                     setInlineTitle('')
                   }}
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                  className="h-10 gap-1.5 rounded-full px-3 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-4 w-4" /> <span>Cancel</span>
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleSave}
-                  className="h-7 px-3 text-[11px] gap-1 font-bold"
+                  disabled={!inlineTitle.trim()}
+                  className="h-10 gap-2 rounded-full px-4 text-xs font-semibold"
                 >
-                  <Check className="w-3.5 h-3.5" /> Add Card
+                  <Check className="h-4 w-4" /> Add Card
                 </Button>
               </div>
             </motion.div>
@@ -1314,7 +1355,7 @@ function BoardColumn({
       {!inlineAdding && (
         <button
           onClick={() => setInlineAdding(true)}
-          className="mx-3 my-2.5 py-2 px-3 rounded-xl hover:bg-muted text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors font-medium border border-transparent hover:border-border/40 cursor-pointer"
+          className="mx-3 my-3 flex min-h-11 items-center gap-2 rounded-full border border-white/[0.08] px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] hover:text-foreground cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" /> Add a card
         </button>
@@ -1497,29 +1538,27 @@ export function TodoContent() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto flex flex-col min-h-screen relative overflow-hidden">
-      {/* Decorative gradient glow background */}
-      <div className="absolute top-[-10%] left-[20%] w-[600px] h-[300px] bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-purple-500/10 rounded-full blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-[-5%] left-[5%] w-[250px] h-[250px] bg-gradient-to-r from-violet-500/5 to-pink-500/5 rounded-full blur-[80px] pointer-events-none -z-10" />
+    <div className="relative mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full min-w-0 flex-col overflow-x-hidden px-4 pb-6 pt-7 sm:px-5 sm:pt-8 xl:px-6">
+      <div aria-hidden="true" className="pointer-events-none absolute -top-24 left-[28%] -z-10 h-64 w-[50vw] rounded-full bg-cyan-200/[0.07] blur-[110px]" />
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
-        className="flex items-start justify-between gap-4 mb-6 sm:mb-8"
+        className="mb-7 flex flex-wrap items-center justify-between gap-5"
       >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-semibold leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[26px]">
             Task Pipeline
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Organize, track, and drag-and-drop your daily development roadmap.</p>
+          <p className="mt-2 text-[15px] text-muted-foreground sm:text-base">Organize tasks and move development work through each stage.</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* View toggle */}
-          <div className="flex items-center rounded-lg border border-border overflow-hidden">
+          <div className="flex items-center rounded-full border border-white/10 bg-white/[0.04] p-1">
             <button
               onClick={() => setViewMode('list')}
               className={cn(
-                'p-2 transition-colors cursor-pointer',
-                viewMode === 'list' ? 'bg-accent text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                'rounded-full p-2 transition-colors cursor-pointer',
+                viewMode === 'list' ? 'bg-white/[0.14] text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.07]'
               )}
               title="List view"
             >
@@ -1528,15 +1567,15 @@ export function TodoContent() {
             <button
               onClick={() => setViewMode('board')}
               className={cn(
-                'p-2 transition-colors cursor-pointer',
-                viewMode === 'board' ? 'bg-accent text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                'rounded-full p-2 transition-colors cursor-pointer',
+                viewMode === 'board' ? 'bg-white/[0.14] text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.07]'
               )}
               title="Board view"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
-          <Button onClick={() => { setEditTaskId(null); setDefaultStatus('todo'); setDialogOpen(true) }} className="gap-2" size="sm">
+          <Button onClick={() => { setEditTaskId(null); setDefaultStatus('todo'); setDialogOpen(true) }} className="gap-2 rounded-full px-5" size="sm">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New Task</span>
             <span className="sm:hidden">Add</span>
@@ -1545,14 +1584,14 @@ export function TodoContent() {
       </motion.div>
 
       {/* Search + filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="mb-5 flex flex-col gap-3 rounded-[24px] border border-white/[0.08] bg-[rgba(3,9,14,.58)] p-3.5 backdrop-blur-xl sm:flex-row sm:p-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="h-12 rounded-full border-white/[0.08] bg-white/[0.035] pl-10 text-sm placeholder:text-muted-foreground/80" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="flex items-center gap-2">
           <Select value={filterPriority} onValueChange={setFilterPriority}>
-            <SelectTrigger className="flex-1 sm:w-36 h-9">
+            <SelectTrigger className="h-12 flex-1 rounded-full border-white/10 bg-white/[0.04] sm:w-48">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -1562,7 +1601,7 @@ export function TodoContent() {
           </Select>
           {viewMode === 'list' && (
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="flex-1 sm:w-36 h-9">
+              <SelectTrigger className="h-10 flex-1 rounded-full border-white/10 bg-white/[0.04] sm:w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -1575,21 +1614,21 @@ export function TodoContent() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-border overflow-x-auto scrollbar-none">
+      <div className="mb-5 flex items-center gap-3 overflow-x-auto border-b border-white/[0.08] pb-4 scrollbar-none">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-3 sm:px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2 cursor-pointer whitespace-nowrap',
+              'flex min-h-12 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full border border-transparent px-5 py-2.5 text-sm font-medium transition-colors',
               activeTab === tab.id
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? 'border-white/10 bg-white text-slate-950'
+                : 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground'
             )}
           >
             {tab.label}
             {tab.id === 'urgent' && urgentCount > 0 && (
-              <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-primary text-primary-foreground rounded-full">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                 {urgentCount}
               </span>
             )}
@@ -1604,7 +1643,7 @@ export function TodoContent() {
             <motion.div
               key="list"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="rounded-xl border border-border bg-card overflow-hidden shadow-sm"
+              className="overflow-hidden rounded-[20px] border border-white/[0.09] bg-[rgba(3,9,14,.82)] shadow-[0_20px_50px_rgba(0,0,0,.3)] backdrop-blur-xl"
             >
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleListDragEnd}>
                 <SortableContext items={filtered.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -1646,7 +1685,7 @@ export function TodoContent() {
                 onDragOver={handleBoardDragOver}
                 onDragEnd={handleBoardDragEnd}
               >
-                <div className="flex flex-col md:flex-row gap-5 overflow-x-auto pb-4 items-start select-none">
+                <div className="grid w-full grid-flow-col auto-cols-[minmax(320px,1fr)] items-stretch gap-6 overflow-x-auto pb-5 lg:auto-cols-[minmax(380px,1fr)] 2xl:auto-cols-[minmax(420px,1fr)]">
                   {STATUSES.map((status) => {
                     const colTasks = filtered.filter((t) => t.status === status)
                     return (

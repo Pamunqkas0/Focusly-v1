@@ -11,6 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
+      <div className="ambient-background" aria-hidden="true" />
       <div className="flex min-h-screen">
         <Sidebar />
         <div className="flex flex-col flex-1 min-w-0">

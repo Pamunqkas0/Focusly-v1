@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Moon, Sun, Monitor, Bell, Timer, User, Trash2, Save, LogOut } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { Moon, Sun, Monitor, Bell, Timer, User, Trash2, Save, LogOut, LifeBuoy } from 'lucide-react'
+import { useTheme } from '@/lib/theme-context'
 import { usePomodoro } from '@/hooks/usePomodoro'
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
@@ -181,7 +181,7 @@ export function SettingsContent() {
         {/* Row 3: Profile & Danger Zone (2 Columns on Desktop) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Profile */}
-          <motion.div variants={section} initial="hidden" animate="show" transition={{ delay: 0.4 }} className="h-full">
+          <motion.div id="profile" variants={section} initial="hidden" animate="show" transition={{ delay: 0.4 }} className="h-full scroll-mt-6">
             <Card className="h-full flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -227,6 +227,17 @@ export function SettingsContent() {
           </motion.div>
         </div>
       </div>
+
+      <section id="support" className="mt-6 scroll-mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LifeBuoy className="w-4 h-4" /> Support
+            </CardTitle>
+            <CardDescription>For account or workspace help, contact your workspace administrator.</CardDescription>
+          </CardHeader>
+        </Card>
+      </section>
     </div>
   )
 }

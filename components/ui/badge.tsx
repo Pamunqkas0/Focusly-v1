@@ -3,20 +3,20 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold tracking-wider uppercase transition-colors',
+  'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase transition-colors',
   {
     variants: {
       variant: {
-        default: 'bg-primary/10 text-primary',
-        secondary: 'bg-secondary text-secondary-foreground',
-        destructive: 'bg-destructive/10 text-destructive',
+        default: 'bg-primary/20 text-primary border border-primary/30',
+        secondary: 'bg-white/10 text-foreground border border-white/10',
+        destructive: 'bg-destructive text-destructive-foreground',
         outline: 'border border-border text-foreground',
-        success: 'bg-success/10 text-success',
-        warning: 'bg-yellow-500/10 text-yellow-500',
-        critical: 'bg-red-600/15 text-red-500 border border-red-500/20',
-        high: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
-        medium: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
-        low: 'bg-green-500/10 text-green-400 border border-green-500/20',
+        success: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+        warning: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+        critical: 'bg-red-500 text-white shadow-[0_0_12px_rgba(239,68,68,0.45)]',
+        high: 'bg-orange-500 text-white shadow-[0_0_12px_rgba(249,115,22,0.45)]',
+        medium: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+        low: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
       },
     },
     defaultVariants: {

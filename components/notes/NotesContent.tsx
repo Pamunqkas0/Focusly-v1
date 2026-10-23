@@ -680,9 +680,9 @@ function NoteCard({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
-        'group rounded-xl border p-4 flex flex-col gap-2 transition-all duration-200',
-        'hover:shadow-md hover:-translate-y-0.5',
-        color.bg || 'bg-card',
+        'group flex min-h-[184px] flex-col gap-3 rounded-[24px] border p-5 transition-[background,border-color,transform,box-shadow] duration-200',
+        'hover:-translate-y-0.5 hover:border-white/[0.15] hover:shadow-[0_14px_34px_rgba(0,0,0,.24)]',
+        color.bg || 'bg-[rgba(15,22,29,.88)]',
         color.border,
         color.value !== 'default' && 'border-l-4',
       )}
@@ -690,7 +690,7 @@ function NoteCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <h3
-          className="font-medium text-sm text-foreground line-clamp-1 flex-1 cursor-pointer hover:text-primary transition-colors"
+          className="flex-1 cursor-pointer line-clamp-1 text-base font-semibold text-foreground transition-colors hover:text-primary"
           onClick={onView}
         >
           {note.title}
@@ -699,7 +699,7 @@ function NoteCard({
           <button
             onClick={onPin}
             className={cn(
-              'p-1 rounded hover:bg-muted transition-colors cursor-pointer',
+              'flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/[0.07] cursor-pointer',
               note.pinned ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             )}
             title={note.pinned ? 'Unpin' : 'Pin'}
@@ -708,28 +708,28 @@ function NoteCard({
           </button>
           <button
             onClick={onView}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.07] hover:text-foreground cursor-pointer"
             title="View"
           >
             <Eye className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onEdit}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.07] hover:text-foreground cursor-pointer"
             title="Edit"
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onDelete}
-            className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive cursor-pointer"
             title="Delete"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
         {note.pinned && (
-          <Pin className={cn('w-3.5 h-3.5 text-primary shrink-0', 'group-hover:hidden')} />
+          <Pin className={cn('h-4 w-4 shrink-0 text-primary', 'group-hover:hidden')} />
         )}
       </div>
 
@@ -737,7 +737,7 @@ function NoteCard({
       {note.content && (
         isEncrypted(note.content) ? (
           <div
-            className="flex items-center gap-1.5 py-3 text-xs text-amber-500 font-medium cursor-pointer hover:text-amber-600 transition-colors"
+            className="flex items-center gap-2 py-3 text-sm font-medium text-amber-400 transition-colors hover:text-amber-300 cursor-pointer"
             onClick={onView}
           >
             <Lock className="w-3.5 h-3.5" />
@@ -745,7 +745,7 @@ function NoteCard({
           </div>
         ) : (
           <p
-            className="text-xs text-muted-foreground line-clamp-3 flex-1 leading-relaxed cursor-pointer hover:text-foreground/70 transition-colors"
+            className="flex-1 cursor-pointer line-clamp-3 text-sm leading-relaxed text-muted-foreground transition-colors hover:text-foreground/75"
             onClick={onView}
           >
             {/* Strip markdown symbols for plain preview */}
@@ -755,21 +755,21 @@ function NoteCard({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-auto pt-1">
-        <div className="flex flex-wrap gap-1">
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
+        <div className="flex min-w-0 flex-wrap gap-1.5">
           {note.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+              className="inline-flex items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.045] px-2.5 py-1 text-[11px] text-muted-foreground"
             >
               <Tag className="w-2.5 h-2.5" />{tag}
             </span>
           ))}
           {note.tags.length > 3 && (
-            <span className="text-[10px] text-muted-foreground px-1">+{note.tags.length - 3}</span>
+            <span className="px-1 text-[11px] text-muted-foreground">+{note.tags.length - 3}</span>
           )}
         </div>
-        <span className="text-[10px] text-muted-foreground shrink-0">
+        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
           {format(new Date(note.updatedAt), 'MMM d')}
         </span>
       </div>
@@ -940,19 +940,19 @@ export function NotesContent() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="mx-auto w-full max-w-[1600px] px-4 py-7 sm:px-6 xl:px-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
-        className="flex items-start justify-between gap-4 mb-6 sm:mb-8"
+        className="mb-7 flex flex-wrap items-center justify-between gap-5"
       >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Quick Notes</h1>
-          <p className="text-sm text-muted-foreground mt-1">Capture ideas, meeting notes, and more.</p>
+          <h1 className="text-2xl font-semibold leading-[1.15] tracking-[-0.03em] text-foreground sm:text-[26px]">Quick Notes</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground sm:text-base">Capture ideas, meeting notes, and more.</p>
         </div>
         <Button
           onClick={() => { setEditNote(null); setDialogOpen(true) }}
-          className="gap-2 shrink-0"
+          className="h-11 shrink-0 gap-2 rounded-full px-5"
           size="sm"
         >
           <Plus className="w-4 h-4" />
@@ -962,11 +962,11 @@ export function NotesContent() {
       </motion.div>
 
       {/* Search */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            className="pl-9"
+            className="h-12 rounded-full border-white/[0.08] bg-white/[0.035] pl-10 text-sm placeholder:text-muted-foreground/80"
             placeholder="Search notes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -976,11 +976,11 @@ export function NotesContent() {
 
       {/* Tag filter chips */}
       {allTags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="mb-6 flex flex-wrap gap-2.5">
           <button
             onClick={() => setFilterTag(null)}
             className={cn(
-              'text-xs px-3 py-1.5 rounded-full border transition-colors cursor-pointer',
+              'min-h-10 rounded-full border px-4 py-2 text-sm transition-colors cursor-pointer',
               !filterTag
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'border-border text-muted-foreground hover:text-foreground'
@@ -993,13 +993,13 @@ export function NotesContent() {
               key={tag}
               onClick={() => setFilterTag(filterTag === tag ? null : tag)}
               className={cn(
-                'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors cursor-pointer',
+                'flex min-h-10 items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors cursor-pointer',
                 filterTag === tag
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border text-muted-foreground hover:text-foreground'
               )}
             >
-              <Tag className="w-3 h-3" /> {tag}
+              <Tag className="h-3.5 w-3.5" /> {tag}
             </button>
           ))}
         </div>
@@ -1007,7 +1007,7 @@ export function NotesContent() {
 
       {/* Notes grid */}
       {filtered.length > 0 ? (
-        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <motion.div layout className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence mode="popLayout">
             {filtered.map((note) => (
               <NoteCard
