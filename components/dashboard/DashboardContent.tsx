@@ -69,7 +69,7 @@ function TaskCard({ task, onToggle, onDelete }: { task: Task; onToggle: () => vo
 }
 
 export function DashboardContent() {
-  const { tasks, toggleTodo, deleteTodo } = useTodos()
+  const { tasks, toggleTask, deleteTask } = useTodos()
   const { state, start, pause, skip, focusTimeToday, todaySessions } = usePomodoro()
   const { notes } = useNotes()
   const { user } = useAuth()
@@ -238,7 +238,7 @@ export function DashboardContent() {
               ))}
             </div>
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-              {recentTasks.map(task => <TaskCard key={task.id} task={task} onToggle={() => toggleTodo(task.id)} onDelete={() => deleteTodo(task.id)} />)}
+              {recentTasks.map(task => <TaskCard key={task.id} task={task} onToggle={() => toggleTask(task.id)} onDelete={() => deleteTask(task.id)} />)}
               {!recentTasks.length && <div className="flex min-h-32 items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-white/45">No tasks in this view.</div>}
             </div>
           </section>
